@@ -1,9 +1,6 @@
-Judul: Analisis Data COVID-19 Indonesia
-📚 Modul 3 — Supervised & Unsupervised Learning
+# Judul: Analisis Data COVID-19 Indonesia
+# 📚 Modul 3 — Supervised & Unsupervised Learning
 
-python
-Copy
-Edit
 # ============================================
 # 📦 IMPORT LIBRARY
 # ============================================
@@ -15,9 +12,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.cluster import KMeans
 from sklearn.metrics import mean_squared_error, r2_score
-python
-Copy
-Edit
+
 # ============================================
 # 📁 LOAD DAN PRA-PROSES DATA
 # ============================================
@@ -35,10 +30,9 @@ df = df[['Date', 'Location', 'Total Cases', 'Total Deaths', 'Total Recovered',
          'Population Density', 'Case Fatality Rate']].dropna()
 
 df.head()
-🔢 1. Supervised Learning: Prediksi Total Kasus
-python
-Copy
-Edit
+
+# 🔢 1. Supervised Learning: Prediksi Total Kasus
+
 # Definisi fitur dan target
 X = df[['Total Deaths', 'Total Recovered', 'Population Density', 'Case Fatality Rate']]
 y = df['Total Cases']
@@ -56,7 +50,7 @@ print("R² Score:", r2_score(y_test, y_pred))
 print("RMSE:", np.sqrt(mean_squared_error(y_test, y_pred)))
 
 # Visualisasi hasil
-plt.figure(figsize=(8,5))
+plt.figure(figsize=(8, 5))
 plt.scatter(y_test, y_pred, alpha=0.6, color='blue')
 plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
 plt.xlabel("Actual Total Cases")
@@ -65,10 +59,9 @@ plt.title("Prediksi vs Aktual Total Kasus COVID-19")
 plt.grid(True)
 plt.tight_layout()
 plt.show()
-🧠 2. Unsupervised Learning: Clustering Lokasi
-python
-Copy
-Edit
+
+# 🧠 2. Unsupervised Learning: Clustering Lokasi
+
 # Agregasi data per lokasi
 df_grouped = df.groupby('Location').agg({
     'Total Cases': 'max',
@@ -85,12 +78,12 @@ kmeans = KMeans(n_clusters=3, random_state=0)
 df_grouped['Cluster'] = kmeans.fit_predict(features)
 
 # Visualisasi hasil clustering
-plt.figure(figsize=(10,6))
+plt.figure(figsize=(10, 6))
 sns.scatterplot(data=df_grouped, x='Total Cases', y='Total Deaths', hue='Cluster', palette='Set2', s=100)
 
 # Tambah label lokasi
 for i in range(len(df_grouped)):
-    plt.text(df_grouped['Total Cases'][i]+300, df_grouped['Total Deaths'][i]+30,
+    plt.text(df_grouped['Total Cases'][i] + 300, df_grouped['Total Deaths'][i] + 30,
              df_grouped['Location'][i], fontsize=8, alpha=0.7)
 
 plt.title("Clustering Lokasi berdasarkan Total Kasus & Kematian")
@@ -99,10 +92,9 @@ plt.ylabel("Total Deaths")
 plt.grid(True)
 plt.tight_layout()
 plt.show()
-🚨 3. Ringkasan Risiko Wilayah Berdasarkan CFR
-python
-Copy
-Edit
+
+# 🚨 3. Ringkasan Risiko Wilayah Berdasarkan CFR
+
 # Rata-rata CFR per lokasi
 df_risk = df.groupby('Location')['Case Fatality Rate'].mean().reset_index()
 
@@ -112,10 +104,8 @@ df_risk['Risk Level'] = pd.cut(df_risk['Case Fatality Rate'],
                                labels=['Low', 'Medium', 'High'])
 
 # Tampilkan data risiko
-df_risk.head()
-python
-Copy
-Edit
+print(df_risk.head())
+
 # Visualisasi distribusi tingkat risiko
 sns.countplot(x='Risk Level', data=df_risk, palette='coolwarm')
 plt.title("Distribusi Risiko Wilayah Berdasarkan Case Fatality Rate")
