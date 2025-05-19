@@ -113,4 +113,11 @@ st.dataframe(latest[['Location', 'Case Fatality Rate', 'Tingkat Risiko']].sort_v
 # ============================
 st.markdown("""
 ---
+### ✅ Kesimpulan
+Melalui pendekatan supervised dan unsupervised learning, kita dapat memahami pola penyebaran COVID-19 secara lebih dalam:
+- Regresi linier membantu memprediksi jumlah total kasus berdasarkan fitur epidemiologis.
+- Clustering membagi wilayah ke dalam kelompok dengan karakteristik serupa.
+- Visualisasi interaktif mempermudah penyajian dan pemahaman informasi.
 
+Dashboard ini diharapkan dapat mendukung pengambilan keputusan yang lebih cepat dan akurat selama masa pandemi.
+""")
