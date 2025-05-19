@@ -1,68 +1,125 @@
-import streamlit as st
+Judul: Analisis Data COVID-19 Indonesia
+📚 Modul 3 — Supervised & Unsupervised Learning
+
+python
+Copy
+Edit
+# ============================================
+# 📦 IMPORT LIBRARY
+# ============================================
 import pandas as pd
 import numpy as np
-import plotly.express as px
-from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
 from sklearn.cluster import KMeans
-
-# Konfigurasi tampilan
-st.set_page_config(layout="wide")
-st.title("Dashboard Analisis COVID-19 Indonesia")
-
-# Load data
+from sklearn.metrics import mean_squared_error, r2_score
+python
+Copy
+Edit
+# ============================================
+# 📁 LOAD DAN PRA-PROSES DATA
+# ============================================
 df = pd.read_csv("covid_19_indonesia_time_series_all.csv")
 
-# Ambil data terakhir dari tiap lokasi
-latest = df.sort_values('Date').groupby('Location').tail(1)
+# Konversi CFR ke desimal
+df['Case Fatality Rate'] = df['Case Fatality Rate'].astype(str).str.replace('%', '', regex=False).str.strip()
+df['Case Fatality Rate'] = pd.to_numeric(df['Case Fatality Rate'], errors='coerce') / 100.0
 
-# Bersihkan data
-latest["Case Fatality Rate"] = latest["Case Fatality Rate"].str.replace('%','').astype(float)
-latest = latest[latest['Location Level'] == 'Province']
+# Konversi tanggal
+df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 
-# Fitur yang digunakan
-features = ['Total Deaths', 'Total Recovered', 'Population Density', 'Case Fatality Rate']
+# Ambil kolom penting dan hapus NaN
+df = df[['Date', 'Location', 'Total Cases', 'Total Deaths', 'Total Recovered',
+         'Population Density', 'Case Fatality Rate']].dropna()
 
-# Clustering dengan KMeans
-X_scaled = StandardScaler().fit_transform(latest[features])
-latest['Cluster'] = KMeans(n_clusters=3, random_state=42).fit_predict(X_scaled)
+df.head()
+🔢 1. Supervised Learning: Prediksi Total Kasus
+python
+Copy
+Edit
+# Definisi fitur dan target
+X = df[['Total Deaths', 'Total Recovered', 'Population Density', 'Case Fatality Rate']]
+y = df['Total Cases']
 
-# ✅ Tambahkan kolom Risiko berdasarkan CFR
-def risiko(row):
-    if row < 1:
-        return 'Rendah'
-    elif row < 3:
-        return 'Sedang'
-    else:
-        return 'Tinggi'
+# Split data training & testing
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-latest['Risiko Wilayah'] = latest['Case Fatality Rate'].apply(risiko)
+# Model regresi linier
+model = LinearRegression()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
 
-# ========================
-# 🔸 Peta Interaktif
-# ========================
-st.subheader("Peta Clustering Wilayah")
-fig_map = px.scatter_mapbox(
-    latest,
-    lat="Latitude",
-    lon="Longitude",
-    color="Cluster",
-    hover_name="Location",
-    zoom=4,
-    mapbox_style="carto-positron",
-    title="Peta Clustering Lokasi COVID-19"
-)
-st.plotly_chart(fig_map, use_container_width=True)
+# Evaluasi performa
+print("R² Score:", r2_score(y_test, y_pred))
+print("RMSE:", np.sqrt(mean_squared_error(y_test, y_pred)))
 
-# ========================
-# 🔸 Grafik Tren Harian
-# ========================
-st.subheader("Tren Kasus Harian")
-provinsi = st.selectbox("Pilih Provinsi", latest['Location'].unique())
-chart_data = df[df['Location'] == provinsi]
-st.line_chart(chart_data.set_index('Date')[['New Cases', 'New Deaths']])
+# Visualisasi hasil
+plt.figure(figsize=(8,5))
+plt.scatter(y_test, y_pred, alpha=0.6, color='blue')
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+plt.xlabel("Actual Total Cases")
+plt.ylabel("Predicted Total Cases")
+plt.title("Prediksi vs Aktual Total Kasus COVID-19")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+🧠 2. Unsupervised Learning: Clustering Lokasi
+python
+Copy
+Edit
+# Agregasi data per lokasi
+df_grouped = df.groupby('Location').agg({
+    'Total Cases': 'max',
+    'Total Deaths': 'max',
+    'Total Recovered': 'max',
+    'Population Density': 'mean'
+}).reset_index()
 
-# ========================
-# 🔸 Tabel Ringkasan Risiko
-# ========================
-st.subheader("Ringkasan Risiko Wilayah Berdasarkan Case Fatality Rate")
-st.dataframe(latest[['Location', 'Total Cases', 'Total Deaths', 'Case Fatality Rate', 'Risiko Wilayah']].sort_values(by='Case Fatality Rate', ascending=False))
+# Ambil fitur numerik
+features = df_grouped.iloc[:, 1:]
+
+# KMeans clustering (3 klaster)
+kmeans = KMeans(n_clusters=3, random_state=0)
+df_grouped['Cluster'] = kmeans.fit_predict(features)
+
+# Visualisasi hasil clustering
+plt.figure(figsize=(10,6))
+sns.scatterplot(data=df_grouped, x='Total Cases', y='Total Deaths', hue='Cluster', palette='Set2', s=100)
+
+# Tambah label lokasi
+for i in range(len(df_grouped)):
+    plt.text(df_grouped['Total Cases'][i]+300, df_grouped['Total Deaths'][i]+30,
+             df_grouped['Location'][i], fontsize=8, alpha=0.7)
+
+plt.title("Clustering Lokasi berdasarkan Total Kasus & Kematian")
+plt.xlabel("Total Cases")
+plt.ylabel("Total Deaths")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+🚨 3. Ringkasan Risiko Wilayah Berdasarkan CFR
+python
+Copy
+Edit
+# Rata-rata CFR per lokasi
+df_risk = df.groupby('Location')['Case Fatality Rate'].mean().reset_index()
+
+# Klasifikasi risiko berdasarkan CFR
+df_risk['Risk Level'] = pd.cut(df_risk['Case Fatality Rate'],
+                               bins=[0, 0.01, 0.03, 1],
+                               labels=['Low', 'Medium', 'High'])
+
+# Tampilkan data risiko
+df_risk.head()
+python
+Copy
+Edit
+# Visualisasi distribusi tingkat risiko
+sns.countplot(x='Risk Level', data=df_risk, palette='coolwarm')
+plt.title("Distribusi Risiko Wilayah Berdasarkan Case Fatality Rate")
+plt.xlabel("Risk Level")
+plt.ylabel("Jumlah Lokasi")
+plt.tight_layout()
+plt.show()
